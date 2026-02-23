@@ -86,8 +86,8 @@ shared/tools/fhir.py  ──►  FHIR R4 server
 ### 1 — Clone the repository
 
 ```bash
-git clone https://github.com/your-org/my-adk-project.git
-cd my-adk-project
+git clone https://github.com/your-org/prompt-opinion-adk-python.git
+cd prompt-opinion-adk-python
 ```
 
 ### 2 — Create a virtual environment and install dependencies
