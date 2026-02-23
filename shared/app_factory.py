@@ -3,23 +3,47 @@ A2A application factory — shared by all agents in this repo.
 
 Each agent's app.py calls create_a2a_app() with its own name, description,
 URL, and optional FHIR extension URI.  The factory handles the AgentCard
-boilerplate, wires up the A2A transport, and attaches the API key middleware.
+boilerplate, wires up the A2A transport, and optionally attaches API key
+middleware.
+
+Security modes
+──────────────
+  require_api_key=True  (default)
+      Agent card advertises X-API-Key as required.
+      All requests except /.well-known/agent-card.json are blocked without a
+      valid key.  Use this for agents that handle sensitive data (e.g. FHIR).
+
+  require_api_key=False
+      Agent card declares no security scheme — any caller can send requests
+      without a key.  The agent card itself makes this discoverable so Prompt
+      Opinion and other callers know no key is needed.  Use this for public or
+      read-only utility agents (e.g. ICD-10 lookups, date/time queries).
 
 Usage:
     from shared.app_factory import create_a2a_app
     from .agent import root_agent
 
+    # Authenticated agent (requires X-API-Key)
     a2a_app = create_a2a_app(
         agent=root_agent,
-        name="my_agent",
-        description="Does useful things.",
+        name="healthcare_fhir_agent",
+        description="Queries patient FHIR data.",
         url="http://localhost:8001",
         port=8001,
         fhir_extension_uri="https://your-workspace/schemas/a2a/v1/fhir-context",
+        require_api_key=True,   # default — can be omitted
+    )
+
+    # Anonymous agent (no key needed)
+    a2a_app = create_a2a_app(
+        agent=root_agent,
+        name="general_agent",
+        description="Public utility agent.",
+        url="http://localhost:8002",
+        port=8002,
+        require_api_key=False,
     )
 """
-import os
-
 from a2a.types import (
     AgentCapabilities,
     AgentCard,
@@ -41,6 +65,7 @@ def create_a2a_app(
     port: int = 8001,
     version: str = "1.0.0",
     fhir_extension_uri: str | None = None,
+    require_api_key: bool = True,
 ):
     """
     Build and return an A2A ASGI application for the given ADK agent.
@@ -55,6 +80,11 @@ def create_a2a_app(
         fhir_extension_uri:  If provided, advertises FHIR context support in the
                              agent card.  Callers use this URI as the metadata key
                              when sending FHIR credentials.  Omit for non-FHIR agents.
+        require_api_key:     If True (default), the agent card declares X-API-Key as
+                             required and ApiKeyMiddleware is attached — all requests
+                             without a valid key are rejected with 401/403.
+                             If False, no security scheme is declared and no middleware
+                             is attached — the agent is publicly accessible.
 
     Returns:
         A Starlette ASGI application ready to be served with uvicorn.
@@ -70,6 +100,26 @@ def create_a2a_app(
             )
         ]
 
+    # Security scheme — advertised in the agent card so callers know what to send.
+    if require_api_key:
+        security_schemes = {
+            "apiKey": SecurityScheme(
+                root=APIKeySecurityScheme(
+                    type="apiKey",
+                    name="X-API-Key",
+                    in_=In.header,
+                    description="API key required to access this agent.",
+                )
+            )
+        }
+        security = [{"apiKey": []}]
+    else:
+        # No security scheme — agent is publicly accessible.
+        # The empty values tell callers (including Prompt Opinion) that no
+        # authentication is required.
+        security_schemes = {}
+        security = []
+
     agent_card = AgentCard(
         name=name,
         description=description,
@@ -84,19 +134,14 @@ def create_a2a_app(
             extensions=extensions,
         ),
         skills=[],
-        securitySchemes={
-            "apiKey": SecurityScheme(
-                root=APIKeySecurityScheme(
-                    type="apiKey",
-                    name="X-API-Key",
-                    in_=In.header,
-                    description="API key required to access this agent.",
-                )
-            )
-        },
-        security=[{"apiKey": []}],
+        securitySchemes=security_schemes,
+        security=security,
     )
 
     app = to_a2a(agent, port=port, agent_card=agent_card)
-    app.add_middleware(ApiKeyMiddleware)
+
+    # Only attach the key-enforcement middleware for authenticated agents.
+    if require_api_key:
+        app.add_middleware(ApiKeyMiddleware)
+
     return app

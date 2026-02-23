@@ -369,9 +369,40 @@ Copy `.env.example` to `.env` and set values before starting any server.
 
 ## API security
 
-All A2A endpoints except the agent card require an `X-API-Key` header.
+Each agent independently controls whether it requires an API key.
+The setting is declared in the agent's `app.py` and is automatically advertised in the agent card — so callers like Prompt Opinion discover the security requirement before sending any requests.
 
-### Updating the allowed keys
+### Security modes at a glance
+
+| Agent | `require_api_key` | Who can call it |
+|---|---|---|
+| `healthcare_agent` | `True` *(default)* | Only callers with a valid `X-API-Key` |
+| `general_agent` | `False` | Anyone — no key needed |
+| `orchestrator` | `True` *(default)* | Only callers with a valid `X-API-Key` |
+
+### Changing an agent's security mode
+
+Open the agent's `app.py` and set `require_api_key`:
+
+```python
+# healthcare_agent/app.py — authenticated (default)
+a2a_app = create_a2a_app(
+    ...
+    require_api_key=True,   # agent card declares X-API-Key required
+                            # ApiKeyMiddleware blocks requests without a valid key
+)
+
+# general_agent/app.py — anonymous / public
+a2a_app = create_a2a_app(
+    ...
+    require_api_key=False,  # agent card declares no security scheme
+                            # no middleware attached — all requests pass through
+)
+```
+
+When `require_api_key=False`, the agent card's `security` field is empty — this is the standard A2A way to signal "no authentication required" to any caller.
+
+### Updating the allowed keys (authenticated agents only)
 
 Open `shared/middleware.py` and update `VALID_API_KEYS`:
 
@@ -398,10 +429,10 @@ VALID_API_KEYS: set = {
 
 ### Endpoints (per agent)
 
-| Endpoint | Auth required | Description |
+| Endpoint | `require_api_key=True` | `require_api_key=False` |
 |---|---|---|
-| `GET /.well-known/agent-card.json` | No | Agent discovery |
-| `POST /` | Yes (`X-API-Key`) | A2A JSON-RPC — all agent interactions |
+| `GET /.well-known/agent-card.json` | Open (always) | Open (always) |
+| `POST /` | Requires `X-API-Key` | Open |
 
 ---
 
