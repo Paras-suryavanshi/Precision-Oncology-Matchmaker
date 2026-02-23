@@ -28,8 +28,11 @@ from .middleware import ApiKeyMiddleware
 # that an API key is required before sending any messages.
 
 agent_card = AgentCard(
-    name="weather_time_agent",
-    description="Agent to answer questions about the time and weather in a city.",
+    name="healthcare_fhir_agent",
+    description=(
+        "A clinical assistant that queries a patient's FHIR health record to answer "
+        "questions about demographics, active medications, conditions, and observations."
+    ),
     url="http://localhost:8001",
     version="1.0.0",
     defaultInputModes=["text/plain"],

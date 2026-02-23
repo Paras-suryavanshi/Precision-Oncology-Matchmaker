@@ -13,7 +13,7 @@ import logging
 import os
 
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
+from starlette.requests import Request  # kept for type hints in dispatch signature
 from starlette.responses import JSONResponse
 
 from .fhir_hook import extract_fhir_from_payload
@@ -28,13 +28,6 @@ VALID_API_KEYS: set = {
     "my-secret-key-123",    # your application's key
     "another-valid-key",    # any other trusted callers
 }
-
-
-def _clone_request_with_body(request: Request, body_bytes: bytes) -> Request:
-    """Return a new Request that replays *body_bytes* as the body stream."""
-    async def receive():
-        return {"type": "http.request", "body": body_bytes, "more_body": False}
-    return Request(request.scope, receive)
 
 
 class ApiKeyMiddleware(BaseHTTPMiddleware):
@@ -75,6 +68,12 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
                 if fhir_key and fhir_data and not params.get("metadata"):
                     params["metadata"] = {fhir_key: fhir_data}
                     body_bytes = json.dumps(parsed, ensure_ascii=False).encode("utf-8")
+                    # Mutate Starlette's cached body directly.
+                    # BaseHTTPMiddleware captures `wrapped_receive` from the original
+                    # _CachedRequest object; call_next() reads from that, not from any
+                    # cloned Request we might create.  Setting request._body is the only
+                    # way to make the modified bytes visible to the downstream handler.
+                    request._body = body_bytes  # type: ignore[attr-defined]
                     logger.info(
                         "FHIR_METADATA_BRIDGED source=message.metadata target=params.metadata key=%s",
                         fhir_key,
@@ -85,8 +84,6 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
                     logger.info("FHIR_PATIENT_FOUND value=%s",     fhir_data.get("patientId", "[EMPTY]"))
                 else:
                     logger.info("FHIR_NOT_FOUND_IN_PAYLOAD keys_checked=params.metadata,message.metadata")
-
-        request = _clone_request_with_body(request, body_bytes)
 
         # Agent-card endpoint is intentionally public — it tells callers that
         # an API key IS required before they start authenticating.
