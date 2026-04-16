@@ -57,9 +57,6 @@ from a2a.types import (
     AgentCard,
     AgentExtension,
     AgentSkill,
-    APIKeySecurityScheme,
-    In,
-    SecurityScheme,
 )
 from google.adk.a2a.utils.agent_to_a2a import to_a2a
 from pydantic import Field
@@ -79,19 +76,21 @@ class AgentExtensionV1(AgentExtension):
 
 
 class AgentCardV1(AgentCard):
-    """AgentCard subclass that adds the A2A v1 `supportedInterfaces` field.
+    """AgentCard subclass that patches two fields missing/changed in A2A v1.
 
-    The installed a2a-sdk does not yet define `supportedInterfaces` on AgentCard,
-    so passing it as a keyword argument is silently ignored by Pydantic and the
-    field never appears in the serialised JSON.  By declaring it explicitly here
-    as a proper typed field we guarantee it is included in the agent card that
-    the library serves at /.well-known/agent-card.json.
+    1. supportedInterfaces — not defined in installed a2a-sdk; added here so
+       it is included in the serialised JSON.
+    2. securitySchemes — the parent types this as dict[str, SecurityScheme],
+       which forces Pydantic to serialise using the OLD flat format
+       (type/name/in).  Po v1 expects the NEW nested-key format
+       (apiKeySecurityScheme/...).  Overriding to dict[str, Any] lets the
+       v1-format dict pass through unmodified.
 
-    Once the a2a-sdk ships native v1 support this subclass can be removed and
-    AgentCard used directly.
+    Both overrides can be removed once the a2a-sdk ships native v1 support.
     """
 
     supportedInterfaces: list[dict[str, Any]] = Field(default_factory=list)
+    securitySchemes: dict[str, Any] | None = None  # override parent's typed field
 
 from shared.middleware import ApiKeyMiddleware
 
@@ -154,26 +153,24 @@ def create_a2a_app(
         ]
 
     # Security scheme — advertised in the agent card so callers know what to send.
-    # NOTE: securitySchemes is typed as dict[str, SecurityScheme] in the installed
-    # a2a-sdk — we must use the typed constructors here. Passing a plain dict causes
-    # Pydantic to silently drop the field, making the agent appear to require no auth.
-    # When the library updates to A2A v1 the new nested-key JSON format can be adopted.
+    # Uses the A2A v1 nested-key format (apiKeySecurityScheme) which is what
+    # the Po backend parses to produce securityType="ApiKey".  The parent
+    # AgentCard.securitySchemes field is typed as dict[str, SecurityScheme],
+    # which would force the OLD flat format (type/name/in) on serialisation
+    # — hence securitySchemes is overridden to dict[str, Any] in AgentCardV1.
     if require_api_key:
         security_schemes = {
-            "apiKey": SecurityScheme(
-                root=APIKeySecurityScheme(
-                    type="apiKey",
-                    name="X-API-Key",
-                    in_=In.header,
-                    description="API key required to access this agent.",
-                )
-            )
+            "apiKey": {
+                "apiKeySecurityScheme": {
+                    "name": "X-API-Key",
+                    "location": "header",  # Po backend uses "location", not "in"
+                    "description": "API key required to access this agent.",
+                }
+            }
         }
         security = [{"apiKey": []}]
     else:
         # No security scheme — agent is publicly accessible.
-        # The empty values tell callers (including Prompt Opinion) that no
-        # authentication is required.
         security_schemes = None
         security = None
 
