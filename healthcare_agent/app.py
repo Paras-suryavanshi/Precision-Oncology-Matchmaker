@@ -30,6 +30,14 @@ a2a_app = create_a2a_app(
     # This URI is the key under which callers send FHIR credentials in the
     # A2A message metadata.  Update to match your Prompt Opinion workspace URL.
     fhir_extension_uri=f"{os.getenv('PO_PLATFORM_BASE_URL', 'http://localhost:5139')}/schemas/a2a/v1/fhir-context",
+    # SMART-on-FHIR scopes — one per FHIR resource type accessed by the tools.
+    # All are marked required because each tool will fail without its scope.
+    fhir_scopes=[
+        {"name": "patient/Patient.rs",           "required": True},   # get_patient_demographics
+        {"name": "patient/MedicationRequest.rs", "required": True},   # get_active_medications
+        {"name": "patient/Condition.rs",         "required": True},   # get_active_conditions
+        {"name": "patient/Observation.rs",       "required": True},   # get_recent_observations
+    ],
     skills=[
         AgentSkill(
             id="patient-demographics",

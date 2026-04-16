@@ -1,3 +1,20 @@
+> **Updated April 15, 2026 — Migrated to A2A Specification v1**
+>
+> The agent card published by all agents in this repo has been updated to comply with the **A2A v1 specification** as required by Prompt Opinion.
+> The following changes were made to `shared/app_factory.py`:
+>
+> | What changed | Detail |
+> |---|---|
+> | `url` removed from agent card | Deprecated in v1. The agent's endpoint URL is now expressed via `supportedInterfaces` (see below). |
+> | `preferredTransport` removed | Deprecated in v1. Preference order is now implicit — the first entry in `supportedInterfaces` is the preferred transport. |
+> | `supportedInterfaces` added | New field. Each entry contains `url`, `protocolBinding`, and `protocolVersion`. Replaces `url` + `preferredTransport`. |
+> | `capabilities.stateTransitionHistory` set to `false` | No longer supported by Prompt Opinion. Field is retained in the schema but must be `false`. |
+> | `securitySchemes` schema updated | Each scheme is now nested under a typed key (e.g. `apiKeySecurityScheme`) per the v1 JSON shape. |
+>
+> The `url` parameter passed to `create_a2a_app()` in each agent's `app.py` is unchanged — it is still read from environment variables (`HEALTHCARE_AGENT_URL`, `GENERAL_AGENT_URL`, `ORCHESTRATOR_URL`) and is now placed inside `supportedInterfaces` instead of the top-level `url` field.
+
+---
+
 # Prompt Opinion Agent Examples
 ### Built with Google ADK · A2A Protocol · Python
 
@@ -380,11 +397,12 @@ Copy `.env.example` to `.env` and set values before starting any server.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `GOOGLE_API_KEY` | **Yes** | — | Google AI Studio key for Gemini |
+| `PO_PLATFORM_BASE_URL` | No | `http://localhost:5139` | Base URL of your Prompt Opinion workspace. Used to construct the FHIR extension URI in the agent card for `healthcare_agent` and `orchestrator`. Set this to your actual workspace URL (e.g. `https://your-workspace.promptopinion.ai`). |
 | `LOG_FULL_PAYLOAD` | No | `true` | Log full JSON-RPC request body on each request |
 | `LOG_HOOK_RAW_OBJECTS` | No | `false` | Dump raw ADK callback objects — debug only |
-| `HEALTHCARE_AGENT_URL` | No | `http://localhost:8001` | Public URL for the healthcare agent |
-| `GENERAL_AGENT_URL` | No | `http://localhost:8002` | Public URL for the general agent |
-| `ORCHESTRATOR_URL` | No | `http://localhost:8003` | Public URL for the orchestrator |
+| `HEALTHCARE_AGENT_URL` | No | `http://localhost:8001` | Public URL for the healthcare agent. Placed in the agent card's `supportedInterfaces` so Prompt Opinion knows where to send requests. |
+| `GENERAL_AGENT_URL` | No | `http://localhost:8002` | Public URL for the general agent. Placed in the agent card's `supportedInterfaces`. |
+| `ORCHESTRATOR_URL` | No | `http://localhost:8003` | Public URL for the orchestrator. Placed in the agent card's `supportedInterfaces`. |
 
 ---
 
@@ -421,7 +439,25 @@ a2a_app = create_a2a_app(
 )
 ```
 
-When `require_api_key=False`, the agent card's `security` field is empty — this is the standard A2A way to signal "no authentication required" to any caller.
+When `require_api_key=False`, the agent card's `security` field is empty — this is the standard A2A v1 way to signal "no authentication required" to any caller.
+
+### Agent card security scheme format (A2A v1)
+
+As of A2A v1, `securitySchemes` uses a nested typed-key format. The factory emits this automatically — you do not need to construct it yourself:
+
+```json
+"securitySchemes": {
+  "apiKey": {
+    "apiKeySecurityScheme": {
+      "name": "X-API-Key",
+      "in": "header",
+      "description": "API key required to access this agent."
+    }
+  }
+}
+```
+
+This replaced the previous `SecurityScheme(root=APIKeySecurityScheme(...))` typed wrapper from the older a2a-sdk API.
 
 ### Updating the allowed keys (authenticated agents only)
 
@@ -749,21 +785,23 @@ Because these agents expose the A2A JSON-RPC protocol (required by Prompt Opinio
 
 1. **Deploy your agent** to a publicly reachable URL (e.g. `https://my-agent.example.com`).
 
-2. **Set the public URL** via environment variable or directly in `app.py`:
+2. **Set the public URL** via environment variable — this URL is placed in the agent card's `supportedInterfaces` array (A2A v1 format):
    ```bash
    HEALTHCARE_AGENT_URL=https://my-agent.example.com
    ```
 
-3. **Update the FHIR extension URI** in `app.py` to match your Prompt Opinion workspace:
-   ```python
-   fhir_extension_uri="https://your-workspace.promptopinion.ai/schemas/a2a/v1/fhir-context"
+3. **Set your Prompt Opinion workspace base URL** so the FHIR extension URI in the agent card is correct:
+   ```bash
+   PO_PLATFORM_BASE_URL=https://your-workspace.promptopinion.ai
    ```
+   This causes `fhir_extension_uri` to resolve to:
+   `https://your-workspace.promptopinion.ai/schemas/a2a/v1/fhir-context`
 
 4. **Register the agent in Prompt Opinion** by providing:
    - Agent card URL: `https://my-agent.example.com/.well-known/agent-card.json`
    - Your `X-API-Key` value (Prompt Opinion sends this on every request)
 
-5. **Prompt Opinion discovers your agent** by fetching the agent card, learns that an API key is required, and begins routing requests to it.
+5. **Prompt Opinion discovers your agent** by fetching the agent card, reads `supportedInterfaces` to find your endpoint, learns that an API key is required, and begins routing requests to it.
 
 ### What Prompt Opinion provides
 
