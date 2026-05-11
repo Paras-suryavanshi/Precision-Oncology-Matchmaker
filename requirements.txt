@@ -1,6 +1,6 @@
 # Core ADK framework + A2A server
 google-adk>=1.25.0
-a2a-sdk[http-server]>=0.3.0
+a2a-sdk[http-server]<1.0.0
 
 # HTTP client used by FHIR tools
 httpx>=0.28.0

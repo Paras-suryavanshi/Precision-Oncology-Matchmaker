@@ -1,0 +1,60 @@
+[
+  {
+    "id": "TMC-IND-1001",
+    "title": "Efficacy of Ribociclib with Endocrine Therapy in HR+/HER2- Metastatic Breast Cancer",
+    "disease_category": "Oncology",
+    "target_disease": "Breast Cancer",
+    "inclusion_criteria": {
+      "age": ">= 18",
+      "disease_status": "Locally advanced or metastatic",
+      "biomarkers": [
+        "Estrogen Receptor (ER) positive", 
+        "HER2 negative (IHC 0/1+ or FISH negative)"
+      ]
+    },
+    "exclusion_criteria": {
+      "prior_treatment": ["Prior CDK4/6 inhibitor therapy"],
+      "comorbidities": ["Clinically significant heart disease (QTcF prolongation)"],
+      "specific_conditions": ["Pregnancy or lactation"]
+    }
+  },
+  {
+    "id": "AIIMS-IND-2002",
+    "title": "Osimertinib in EGFR-Mutated Advanced Non-Small Cell Lung Cancer (NSCLC)",
+    "disease_category": "Oncology",
+    "target_disease": "Non-Small Cell Lung Cancer (NSCLC)",
+    "inclusion_criteria": {
+      "age": ">= 18",
+      "disease_status": "Stage IIIB or IV",
+      "biomarkers": [
+        "EGFR exon 19 deletion OR L858R mutation positive"
+      ]
+    },
+    "exclusion_criteria": {
+      "prior_treatment": ["Prior EGFR-TKI therapy"],
+      "comorbidities": ["Interstitial Lung Disease (ILD)"],
+      "specific_conditions": ["Pregnancy or lactation"]
+    }
+  },
+  {
+    "id": "NCI-IND-3003",
+    "title": "Pembrolizumab vs Standard Chemotherapy in Recurrent Head and Neck Squamous Cell Carcinoma",
+    "disease_category": "Oncology",
+    "target_disease": "Head and Neck Squamous Cell Carcinoma (HNSCC)",
+    "inclusion_criteria": {
+      "age": ">= 18",
+      "disease_status": "Recurrent or Metastatic",
+      "biomarkers": [
+        "PD-L1 CPS >= 1"
+      ]
+    },
+    "exclusion_criteria": {
+      "prior_treatment": ["Prior systemic therapy in the recurrent setting"],
+      "comorbidities": [
+        "Active Hepatitis B or C infection", 
+        "Active autoimmune disease"
+      ],
+      "specific_conditions": ["Pregnancy or lactation"]
+    }
+  }
+]

@@ -63,5 +63,11 @@ a2a_app = create_a2a_app(
             description="Retrieve recent vitals, lab results, and social history.",
             tags=["observations", "fhir"],
         ),
+        AgentSkill(
+            id="search-clinical-trials",
+            name="search-clinical-trials",
+            description="Searches the local trials_database.json for available clinical trials.",
+            tags=["trials"],
+        ),
     ],
 )
