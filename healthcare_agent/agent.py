@@ -31,7 +31,7 @@ def fetch_data_and_inject(callback_context, llm_request):
     # Check if we successfully got the token and patient ID
     if "fhir_token" in callback_context.state and "patient_id" in callback_context.state:
         # Force Python to map the context exactly where it belongs
-        #raw_demo = get_patient_demographics(callback_context)
+        raw_demo = get_patient_demographics(callback_context)
         
         # Calculate age to avoid sending the exact Date of Birth to the AI
         patient_age = "Unknown"
