@@ -34,7 +34,7 @@ def fetch_data_and_inject(callback_context, llm_request):
         #raw_demo = get_patient_demographics(callback_context)
         
         # Calculate age to avoid sending the exact Date of Birth to the AI
-        '''patient_age = "Unknown"
+        patient_age = "Unknown"
         if "birthDate" in raw_demo:
             try:
                 # Extracts the year (e.g., "1980" from "1980-02-03")
@@ -42,20 +42,20 @@ def fetch_data_and_inject(callback_context, llm_request):
                 # Subtract from current year (adjust if needed!)
                 patient_age = 2026 - birth_year 
             except:
-                patient_age = raw_demo["birthDate"]'''
+                patient_age = raw_demo["birthDate"]
 
         # The Ultimate Scrubbed Payload (Only Clinical Variables, No PII)
-        '''safe_demo = {
+        safe_demo = {
             "age": patient_age,
             "gender": raw_demo.get("gender", "Unknown")
         }
         cond_data = get_active_conditions(tool_context=callback_context)
         med_data = get_active_medications(tool_context=callback_context)
         obs_data = get_recent_observations(tool_context=callback_context, category="laboratory")
-        trials = search_clinical_trials(tool_context=callback_context)'''
+        trials = search_clinical_trials(tool_context=callback_context)
         
         # 3. Format it all into a massive text block
-        '''injected_data = f"""
+        injected_data = f"""
         --- PRE-FETCHED PATIENT DATA FOR EVALUATION ---
         Demographics: {safe_demo}
         Conditions: {cond_data}
@@ -64,21 +64,6 @@ def fetch_data_and_inject(callback_context, llm_request):
         
         --- AVAILABLE CLINICAL TRIALS ---
         {trials}
-        -----------------------------------------------
-        """'''
-        injected_data = """
-        --- PRE-FETCHED PATIENT DATA FOR EVALUATION ---
-        Demographics: Age: 52, Gender: Male
-        Conditions: Confirmed diagnosis of Non-Small Cell Lung Cancer (NSCLC), Stage IV.
-        Observations: PD-L1 Biomarker Test: POSITIVE (85% expression). No history of autoimmune diseases.
-        Medications: Ibuprofen (as needed). No prior anti-PD-1 therapy.
-        
-        --- AVAILABLE CLINICAL TRIALS ---
-        NCT00000001
-        Title: Efficacy of Pembrolizumab in Advanced Non-Small Cell Lung Cancer (NSCLC)
-        Category: Oncology
-        Inclusion: Age >= 18, Stage III or IV NSCLC, PD-L1 positive.
-        Exclusion: Prior anti-PD-1 therapy, active autoimmune disease.
         -----------------------------------------------
         """
         
