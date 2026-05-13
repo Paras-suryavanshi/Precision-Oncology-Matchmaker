@@ -76,6 +76,7 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
         # Prompt Opinion (and other older clients) send e.g. "SendStreamingMessage"
         # but the installed a2a-sdk only registers "message/stream" / "message/send".
         _METHOD_ALIASES: dict[str, str] = {
+            "tasks/send":           "message/send",  # <--- YE LINE MISSING THI!
             "SendMessage":          "message/send",
             "SendStreamingMessage": "message/send",   # PO client can't parse SSE; use non-streaming
             "GetTask":              "tasks/get",
