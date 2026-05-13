@@ -76,7 +76,7 @@ def fetch_data_and_inject(callback_context, llm_request):
 # 2. Define the Agent
 root_agent = Agent(
     name="healthcare_fhir_agent",
-    model="gemma-4-31b-it",
+    model="gemini-1.5-flash",
     description="Evaluates patient eligibility for clinical trials.",
     instruction=(
         """
