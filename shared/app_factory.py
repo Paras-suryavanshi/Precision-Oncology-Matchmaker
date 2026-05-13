@@ -104,7 +104,7 @@ def create_a2a_app(
     version: str = "1.0.0",
     fhir_extension_uri: str | None = None,
     fhir_scopes: list[dict[str, Any]] | None = None,
-    require_api_key: bool = True,
+    require_api_key: bool = False,
     skills: list[AgentSkill] | None = None,
 ):
     """
