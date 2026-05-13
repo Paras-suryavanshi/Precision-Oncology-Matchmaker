@@ -180,7 +180,7 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # 2. X-API-Key aur Authorization dono headers me chabi (key) dhoondho
-        api_key = request.headers.get("x-api-key") or request.headers.get("X-API-Key")
+        api_key = request.headers.get("prompt-opinion-api-key") or request.headers.get("x-api-key") or request.headers.get("X-API-Key")
         
         # Agar X-API-Key nahi mili, toh Authorization header check karo (Prompt Opinion Standard)
         if not api_key:
