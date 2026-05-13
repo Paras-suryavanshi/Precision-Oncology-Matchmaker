@@ -171,11 +171,24 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
 
         # Agent-card endpoint is intentionally public — it tells callers that
         # an API key IS required before they start authenticating.
+        # Agent-card endpoint is intentionally public
         if request.url.path == "/.well-known/agent-card.json":
             return await call_next(request)
+            
+        # 1. CORS Preflight (OPTIONS) requests ko bina key ke allow karo
+        if request.method == "OPTIONS":
+            return await call_next(request)
 
-        # Dono case handle ho jayenge (X-API-Key aur x-api-key)
+        # 2. X-API-Key aur Authorization dono headers me chabi (key) dhoondho
         api_key = request.headers.get("x-api-key") or request.headers.get("X-API-Key")
+        
+        # Agar X-API-Key nahi mili, toh Authorization header check karo (Prompt Opinion Standard)
+        if not api_key:
+            auth_header = request.headers.get("authorization")
+            if auth_header and auth_header.lower().startswith("bearer "):
+                api_key = auth_header[7:].strip()
+            elif auth_header:
+                api_key = auth_header.strip()
 
         if not api_key:
             logger.warning(
