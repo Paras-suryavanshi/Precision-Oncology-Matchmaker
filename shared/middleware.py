@@ -63,6 +63,15 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next):
+        debug_logger = logging.getLogger("debug_logger")
+        
+        # Headers print kar rahe hain taaki pata chale Prompt Opinion kya bhej raha hai
+        headers_dict = dict(request.headers)
+        debug_logger.warning(f"DEBUG: Path = {request.url.path}")
+        debug_logger.warning(f"DEBUG: All Headers = {headers_dict}")
+        debug_logger.warning(f"DEBUG: Received x-api-key = {headers_dict.get('x-api-key')}")
+        debug_logger.warning(f"DEBUG: Received X-API-Key = {headers_dict.get('X-API-Key')}")
+        debug_logger.warning(f"DEBUG: Valid Keys in Memory = {VALID_API_KEYS}")
         # Read and parse the body so we can log it and inspect metadata.
         body_bytes = await request.body()
         body_text  = body_bytes.decode("utf-8", errors="replace")
