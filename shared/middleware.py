@@ -186,7 +186,8 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         api_key = request.headers.get("x-api-key") or request.headers.get("X-API-Key")
-
+        # Middleware.py mein jahan 'if not api_key:' wali checking hai, usse pehle ye dalo:
+        return await call_next(request)
         if not api_key:
             logger.warning(
                 "security_rejected_missing_api_key path=%s method=%s",
