@@ -76,12 +76,14 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
         # Prompt Opinion (and other older clients) send e.g. "SendStreamingMessage"
         # but the installed a2a-sdk only registers "message/stream" / "message/send".
         _METHOD_ALIASES: dict[str, str] = {
-            "tasks/send":           "message/send",  # <--- YE LINE MISSING THI!
+            "tasks/send":           "message/send",
+            "tasks/stream":         "message/send", # Agar stream bhej raha ho toh bhi non-stream par daalo
             "SendMessage":          "message/send",
-            "SendStreamingMessage": "message/send",   # PO client can't parse SSE; use non-streaming
+            "SendStreamingMessage": "message/send",
             "GetTask":              "tasks/get",
             "CancelTask":           "tasks/cancel",
             "TaskResubscribe":      "tasks/resubscribe",
+            "SendA2AMessage":       "message/send", # UI tool name safety net
         }
         _ROLE_ALIASES: dict[str, str] = {
             "ROLE_USER":  "user",
@@ -89,15 +91,32 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
         }
         body_dirty = False
 
-        if isinstance(parsed, dict) and parsed.get("method") in _METHOD_ALIASES:
-            original_method = parsed["method"]
-            parsed["method"] = _METHOD_ALIASES[original_method]
-            body_dirty = True
-            logger.info(
-                "jsonrpc_method_rewritten original=%s rewritten=%s",
-                original_method, parsed["method"],
-            )
+        # ==========================================
+        # 🔥 UNIVERSAL CATCH-ALL METHOD REWRITER 🔥
+        # ==========================================
+        if isinstance(parsed, dict) and "method" in parsed:
+            original_method = str(parsed["method"])
+            orig_lower = original_method.lower()
 
+            # Method ko dynamically samajhne ka logic
+            if "get" in orig_lower:
+                new_method = "tasks/get"
+            elif "cancel" in orig_lower:
+                new_method = "tasks/cancel"
+            elif "resubscribe" in orig_lower:
+                new_method = "tasks/resubscribe"
+            else:
+                new_method = "message/send"  # Agar kuch samajh na aaye toh isko prompt maan lo
+
+            # Agar naam badla hai, toh update karo
+            if original_method != new_method:
+                parsed["method"] = new_method
+                body_dirty = True
+                logger.info(
+                    "jsonrpc_method_rewritten original=%s rewritten=%s",
+                    original_method, new_method,
+                )
+        # ==========================================
         # Normalise proto-style role values in every message in the payload.
         # Prompt Opinion sends ROLE_USER / ROLE_AGENT; the a2a-sdk expects user / agent.
         def _fix_roles(node):
