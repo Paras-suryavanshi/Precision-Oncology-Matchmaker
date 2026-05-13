@@ -13,7 +13,6 @@ import os
 
 from a2a.types import AgentSkill
 from shared.app_factory import create_a2a_app
-from starlette.responses import JSONResponse
 from .agent import root_agent
 
 print(os.getenv('PO_PLATFORM_BASE_URL'))
@@ -71,10 +70,3 @@ a2a_app = create_a2a_app(
         ),
     ],
 )
-
-@a2a_app.route("/", methods=["GET"])
-async def health_check(request):
-    return JSONResponse(
-        status_code=200, 
-        content={"status": "healthy", "message": "Precision Oncology Matchmaker is running"}
-    )

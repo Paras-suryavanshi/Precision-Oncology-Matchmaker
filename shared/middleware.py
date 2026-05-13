@@ -63,15 +63,6 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next):
-        debug_logger = logging.getLogger("debug_logger")
-        
-        # Headers print kar rahe hain taaki pata chale Prompt Opinion kya bhej raha hai
-        headers_dict = dict(request.headers)
-        debug_logger.warning(f"DEBUG: Path = {request.url.path}")
-        debug_logger.warning(f"DEBUG: All Headers = {headers_dict}")
-        debug_logger.warning(f"DEBUG: Received x-api-key = {headers_dict.get('x-api-key')}")
-        debug_logger.warning(f"DEBUG: Received X-API-Key = {headers_dict.get('X-API-Key')}")
-        debug_logger.warning(f"DEBUG: Valid Keys in Memory = {VALID_API_KEYS}")
         # Read and parse the body so we can log it and inspect metadata.
         body_bytes = await request.body()
         body_text  = body_bytes.decode("utf-8", errors="replace")
@@ -180,18 +171,21 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
 
         # Agent-card endpoint is intentionally public — it tells callers that
         # an API key IS required before they start authenticating.
-        public_paths = ["/", "/.well-known/agent-card.json"]
-
-        if request.url.path in public_paths:
+        if request.url.path == "/.well-known/agent-card.json":
             return await call_next(request)
 
+        # Dono case handle ho jayenge (X-API-Key aur x-api-key)
         api_key = request.headers.get("x-api-key") or request.headers.get("X-API-Key")
-        # Middleware.py mein jahan 'if not api_key:' wali checking hai, usse pehle ye dalo:
 
         if not api_key:
-            # Agar key nahi mili, toh hum zabardasti valid key assign kar rahe hain
-            api_key = "my-key-1" 
-            logger.warning(f"DEBUG: No key found, using default for path {request.url.path}")
+            logger.warning(
+                "security_rejected_missing_api_key path=%s method=%s",
+                request.url.path, request.method,
+            )
+            return JSONResponse(
+                status_code=401,
+                content={"error": "Unauthorized", "detail": "X-API-Key header is required"},
+            )
 
         if api_key not in VALID_API_KEYS:
             logger.warning(
