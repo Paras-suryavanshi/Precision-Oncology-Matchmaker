@@ -8,6 +8,7 @@ need to discover the agent before they can authenticate.
 In production, load keys from environment variables or a secrets manager
 (e.g. Azure Key Vault, AWS Secrets Manager) rather than hardcoding them here.
 """
+from httpx import request
 import json
 import logging
 import os
@@ -173,7 +174,7 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/.well-known/agent-card.json":
             return await call_next(request)
 
-        api_key = request.headers.get("X-API-Key")
+        api_key = request.headers.get("x-api-key") or request.headers.get("X-API-Key")
 
         if not api_key:
             logger.warning(
