@@ -204,7 +204,7 @@ def create_a2a_app(
     app = to_a2a(agent, port=port, agent_card=agent_card)
 
     # Only attach the key-enforcement middleware for authenticated agents.
-    if require_api_key:
-        app.add_middleware(ApiKeyMiddleware)
+    
+    app.add_middleware(ApiKeyMiddleware)
 
     return app

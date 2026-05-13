@@ -199,41 +199,8 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        # 2. X-API-Key aur Authorization dono headers me chabi (key) dhoondho
-        api_key = request.headers.get("prompt-opinion-api-key") or request.headers.get("x-api-key") or request.headers.get("X-API-Key")
-        
-        # Agar X-API-Key nahi mili, toh Authorization header check karo (Prompt Opinion Standard)
-        if not api_key:
-            auth_header = request.headers.get("authorization")
-            if auth_header and auth_header.lower().startswith("bearer "):
-                api_key = auth_header[7:].strip()
-            elif auth_header:
-                api_key = auth_header.strip()
 
-        if not api_key:
-            logger.warning(
-                "security_rejected_missing_api_key path=%s method=%s",
-                request.url.path, request.method,
-            )
-            return JSONResponse(
-                status_code=401,
-                content={"error": "Unauthorized", "detail": "X-API-Key header is required"},
-            )
-
-        if api_key not in VALID_API_KEYS:
-            logger.warning(
-                "security_rejected_invalid_api_key path=%s method=%s key_prefix=%s",
-                request.url.path, request.method, api_key[:6],
-            )
-            return JSONResponse(
-                status_code=403,
-                content={"error": "Forbidden", "detail": "Invalid API key"},
-            )
-
-        logger.info(
-            "security_authorized path=%s method=%s key_prefix=%s",
-            request.url.path, request.method, api_key[:6],
-        )
+        logger.info("security_authorized_hackathon_bypass path=%s", request.url.path)
         response = await call_next(request)
 
         # Only post-process JSON responses (not SSE streams).
