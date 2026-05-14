@@ -12,6 +12,7 @@ from httpx import request
 import json
 import logging
 import os
+import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request  # kept for type hints in dispatch signature
@@ -98,7 +99,7 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
             original_method = str(parsed["method"])
             orig_lower = original_method.lower()
 
-            # Method ko dynamically samajhne ka logic
+            # Logic to understand method dynamically
             if "get" in orig_lower:
                 new_method = "tasks/get"
             elif "cancel" in orig_lower:
@@ -106,9 +107,9 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
             elif "resubscribe" in orig_lower:
                 new_method = "tasks/resubscribe"
             else:
-                new_method = "message/send"  # Agar kuch samajh na aaye toh isko prompt maan lo
+                new_method = "message/send"  # If not match any condition
 
-            # Agar naam badla hai, toh update karo
+            # If name is changed then update
             if original_method != new_method:
                 parsed["method"] = new_method
                 body_dirty = True
@@ -116,6 +117,18 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
                     "jsonrpc_method_rewritten original=%s rewritten=%s",
                     original_method, new_method,
                 )
+            if parsed.get("method") == "message/send":
+                if "params" not in parsed:
+                    parsed["params"] = {}
+                if isinstance(parsed["params"], dict):
+                    if "message" not in parsed["params"]:
+                        parsed["params"]["message"] = {}
+                    
+                    # If not message ID then generate random ID
+                    if "messageId" not in parsed["params"]["message"] or not parsed["params"]["message"]["messageId"]:
+                        parsed["params"]["message"]["messageId"] = str(uuid.uuid4())
+                        body_dirty = True
+                        logger.info("injected_missing_messageId_for_bot")
         # ==========================================
         # Normalise proto-style role values in every message in the payload.
         # Prompt Opinion sends ROLE_USER / ROLE_AGENT; the a2a-sdk expects user / agent.
@@ -188,7 +201,8 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
                     logger.info("FHIR_PATIENT_FOUND value=%s",     fhir_data.get("patientId", "[EMPTY]"))
                 else:
                     logger.info("FHIR_NOT_FOUND_IN_PAYLOAD keys_checked=params.metadata,message.metadata")
-
+                if request.url.path == "/.well-known/agent.json":
+                    request.scope["path"] = "/.well-known/agent-card.json"
         # Agent-card endpoint is intentionally public — it tells callers that
         # an API key IS required before they start authenticating.
         # Agent-card endpoint is intentionally public
